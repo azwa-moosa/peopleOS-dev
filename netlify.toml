@@ -1,0 +1,13 @@
+# Netlify hosts the WEB app only. The API (NestJS), worker and PostgreSQL must run elsewhere;
+# set API_BASE_URL in Netlify → Site configuration → Environment variables to the API's HTTPS URL.
+[build]
+  command = "pnpm --filter @bml/web... run build"
+  publish = "apps/web/.next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  PNPM_VERSION = "10.28.0"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
