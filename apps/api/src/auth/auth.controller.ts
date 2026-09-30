@@ -78,6 +78,6 @@ export class AuthController {
   async ready() {
     await this.db.query('select 1');
     const m = await this.db.query(`select count(*)::int as n from public.schema_migrations`).catch(() => ({ rows: [{ n: 0 }] }));
-    return { status: 'ready', migrations: m.rows[0].n };
+    return { status: 'ready', migrations: m.rows[0].n, singleRoleMode: this.db.singleRoleMode };
   }
 }

@@ -22,6 +22,7 @@ import { ActionsController } from './actions/actions.controller';
 import { CIPHER, ErService } from './er/er.service';
 import { ErController } from './er/er.controller';
 import { PreviewController } from './config/preview.controller';
+import { EmbeddedOutboxRelay } from './infra/outbox-relay';
 
 @Module({
   imports: [DiscoveryModule],
@@ -38,7 +39,7 @@ import { PreviewController } from './config/preview.controller';
       },
     },
     DbService, AuditService, TokenService, SecurityContextService, OrgService, ConfigService, ActionsService, ErService,
-    RouteAccessAuditor,
+    RouteAccessAuditor, EmbeddedOutboxRelay,
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
 })

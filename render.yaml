@@ -1,0 +1,45 @@
+# Render Blueprint – hosted DEV/DEMO backend for the People & ER Platform.
+# Creates: PostgreSQL 16 + the NestJS API (with the audit relay running in-process).
+# The web app stays on Netlify; set API_BASE_URL there to this API's https://….onrender.com URL.
+#
+# SYNTHETIC DATA ONLY. Free Render Postgres expires 30 days after creation; free web services sleep
+# after 15 minutes idle (first request then takes ~1 minute).
+
+services:
+  - type: web
+    name: bml-people-er-api
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @bml/api run build
+    # Migrations and the synthetic seed are idempotent: safe on every start.
+    startCommand: pnpm --filter @bml/schemas run migrate && pnpm --filter @bml/schemas run seed && node apps/api/dist/main.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PLATFORM_ENV
+        value: dev
+      - key: MOCK_IDP_ENABLED
+        value: "true"
+      - key: EMBEDDED_OUTBOX_RELAY
+        value: "true"
+      - key: DATABASE_URL_MIGRATOR
+        fromDatabase:
+          name: bml-people-er-db
+          property: connectionString
+      # DATABASE_URL is derived automatically (app_runtime + this password). Leave it unset.
+      - key: APP_RUNTIME_PASSWORD
+        generateValue: true
+      - key: DEV_JWT_SECRET
+        generateValue: true
+      - key: FIELD_ENCRYPTION_KEY
+        generateValue: true   # 256-bit base64 – exactly the AES-256 key size required
+
+databases:
+  - name: bml-people-er-db
+    plan: free
+    region: singapore
+    postgresMajorVersion: "16"
+    databaseName: bml_people_er
+    user: app_migrator

@@ -49,6 +49,10 @@ Useful commands:
 | `pnpm test:all` | All of the above |
 | `pnpm build` | Build packages, API, worker and web |
 
+## Hosted demo
+
+Web on Netlify (`netlify.toml`), API + database on Render (`render.yaml`). Step-by-step: `docs/deploy-hosted-demo.md`.
+
 ## Try these journeys
 
 | Persona | Roles | Try |

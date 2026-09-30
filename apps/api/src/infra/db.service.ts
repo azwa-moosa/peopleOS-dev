@@ -1,16 +1,46 @@
-import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
 import { can, SecurityContext } from '@bml/policy';
 import { ENV, Env } from './env';
+import { logger } from './logger';
 
 export type Tx = PoolClient;
 
 @Injectable()
-export class DbService implements OnModuleDestroy {
-  readonly pool: Pool;
-  constructor(@Inject(ENV) env: Env) {
-    // Runtime role: DML only, subject to RLS on ER/Voice schemas.
-    this.pool = new Pool({ connectionString: env.DATABASE_URL, max: 10 });
+export class DbService implements OnModuleInit, OnModuleDestroy {
+  pool: Pool;
+  /** True when running as the table owner because the restricted runtime role could not be used. */
+  singleRoleMode = false;
+
+  constructor(@Inject(ENV) private readonly env: Env) {
+    // Runtime role: DML only, not the owner, so Postgres RLS applies to ER/Voice schemas.
+    this.pool = new Pool({ connectionString: DbService.runtimeUrl(env), max: 10 });
+  }
+
+  /** Explicit DATABASE_URL, else the migrator URL with the app_runtime credentials swapped in. */
+  static runtimeUrl(env: Env): string {
+    if (env.DATABASE_URL) return env.DATABASE_URL;
+    const u = new URL(env.DATABASE_URL_MIGRATOR!);
+    u.username = 'app_runtime';
+    u.password = env.APP_RUNTIME_PASSWORD ?? 'app_runtime_dev';
+    return u.toString();
+  }
+
+  async onModuleInit() {
+    try {
+      await this.pool.query('select 1');
+    } catch (e) {
+      if (!this.env.DATABASE_URL && this.env.DATABASE_URL_MIGRATOR) {
+        // Host did not allow creating app_runtime (no CREATEROLE). Keep the demo running, but say so loudly.
+        logger.warn({ err: (e as Error).message }, 'app_runtime unavailable – SINGLE-ROLE MODE: Postgres RLS defence-in-depth and audit grants are NOT active; API-layer policy still enforced. Hosted DEV demo only.');
+        await this.pool.end().catch(() => undefined);
+        this.pool = new Pool({ connectionString: this.env.DATABASE_URL_MIGRATOR, max: 10 });
+        this.singleRoleMode = true;
+        await this.pool.query('select 1');
+      } else {
+        throw e;
+      }
+    }
   }
 
   /**
