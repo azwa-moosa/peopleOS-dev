@@ -15,8 +15,8 @@
     "infra:up": "docker compose -f infra/docker/compose.yml up -d",
     "infra:down": "docker compose -f infra/docker/compose.yml down",
     "db:migrate": "pnpm --filter @bml/schemas run migrate",
-    "db:seed": "pnpm --filter @bml/schemas run seed",
-    "db:reset": "pnpm --filter @bml/schemas run reset",
+    "db:seed": "pnpm build:packages && pnpm --filter @bml/schemas run seed",
+    "db:reset": "pnpm build:packages && pnpm --filter @bml/schemas run reset",
     "dev": "pnpm build:packages && pnpm --parallel --filter @bml/api --filter @bml/worker --filter @bml/web run dev",
     "test:security": "node tests/security/run-matrix.mjs",
     "scan:pii": "node tests/security/pii-scan.mjs",
@@ -24,7 +24,8 @@
     "test:all": "pnpm test && pnpm scan:pii && pnpm lint:colors && pnpm test:security && pnpm test:e2e && pnpm test:ui",
     "db:dictionary": "pnpm --filter @bml/schemas run dictionary",
     "lint:colors": "node tests/ui/lint-colors.mjs",
-    "test:ui": "playwright test tests/ui"
+    "test:ui": "playwright test tests/ui",
+    "postinstall": "pnpm build:packages"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.10.2",
